@@ -8,13 +8,13 @@ type Message = {
   insight?: string;
 };
 
-export default function Chat({ workspace }: { workspace: string }) {
+export default function Chat({ workspace, disableAppearance = false }: { workspace: string | null; disableAppearance?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function send() {
-    if (!input || loading) return;
+    if (!input || loading || !workspace) return;
 
     const question = input;
     setInput("");
@@ -41,49 +41,86 @@ export default function Chat({ workspace }: { workspace: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-white">
+    <div className="flex flex-col h-full w-full bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
-      <div className="border-b border-gray-200 py-4 px-4">
-        <h1 className="text-center text-2xl font-bold text-gray-900">Chat BI</h1>
-      </div>
+      {!disableAppearance && (
+        <div className="border-b border-gray-200 bg-white px-6 py-5 shadow-sm">
+          <h1 className="text-center text-xl font-semibold text-gray-900">Chat BI</h1>
+          <p className="text-center text-sm text-gray-500 mt-1">Análise inteligente de dados</p>
+        </div>
+      )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-3xl mx-auto">
-          {messages.map((m, i) => (
-            <div key={i} className="mb-6">
-              {m.role === "user" ? (
-                <div className="flex justify-end">
-                  <div className="bg-blue-600 text-white p-4 rounded-lg max-w-2xl">
-                    {m.content}
-                  </div>
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="max-w-3xl mx-auto space-y-4">
+          {messages.length === 0 && workspace && (
+            <div className="flex items-center justify-center h-full text-center">
+              <div>
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-4">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
+                <h3 className="text-gray-900 font-medium mb-2">Faça uma pergunta</h3>
+                <p className="text-gray-500 text-sm">Comece digitando uma pergunta sobre seus dados para obter insights</p>
+              </div>
+            </div>
+          )}
+
+          {messages.map((m, i) => (
+            <div key={i} className="flex gap-4 animate-fadeIn">
+              {m.role === "user" ? (
+                <>
+                  <div className="flex-1" />
+                  <div className="flex gap-3 max-w-2xl">
+                    <div className="bg-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-3 text-sm leading-relaxed shadow-sm">
+                      {m.content}
+                    </div>
+                  </div>
+                </>
               ) : (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 text-gray-900 p-4 rounded-lg max-w-2xl">
-                    <div className="mb-3">
-                      <h3 className="font-semibold text-gray-900 mb-2">Resposta:</h3>
-                      <div className="text-gray-800 prose prose-sm max-w-none">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                <>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-semibold">
+                    IA
+                  </div>
+                  <div className="flex-1 max-w-2xl">
+                    <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                      <div className="space-y-3">
+                        <div>
+                          <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Resposta</h3>
+                          <div className="text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-1 prose-li:my-0">
+                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                          </div>
+                        </div>
+                        {m.insight && (
+                          <div className="border-t border-gray-200 pt-3">
+                            <h3 className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-1">
+                              <span className="w-1 h-1 rounded-full bg-purple-600" />
+                              Insight
+                            </h3>
+                            <div className="text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-1 prose-li:my-0">
+                              <ReactMarkdown>{m.insight}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {m.insight && (
-                      <div className="border-t border-gray-300 pt-3 mt-3">
-                        <h3 className="font-semibold text-gray-900 mb-2">Insight:</h3>
-                        <div className="text-gray-800 prose prose-sm max-w-none">
-                          <ReactMarkdown>{m.insight}</ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </div>
+                </>
               )}
             </div>
           ))}
 
           {loading && (
-            <div className="flex justify-start mb-6">
-              <div className="bg-gray-100 p-4 rounded-lg">
+            <div className="flex gap-4 animate-fadeIn">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
                 <p className="text-sm text-gray-500">IA está pensando...</p>
               </div>
             </div>
@@ -92,21 +129,24 @@ export default function Chat({ workspace }: { workspace: string }) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-200 bg-white px-6 py-4 shadow-lg">
         <div className="max-w-3xl mx-auto flex gap-3">
           <input
-            className="flex-1 border border-gray-300 p-3 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+            className="flex-1 bg-gray-50 border border-gray-300 rounded-full px-4 py-3 text-sm text-gray-900 placeholder-gray-500 transition-all focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Faça uma pergunta sobre seus dados..."
-            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder={workspace ? "Faça uma pergunta sobre seus dados..." : "Selecione um workspace para começar..."}
+            onKeyDown={(e) => e.key === "Enter" && !loading && workspace && send()}
+            disabled={!workspace || loading}
           />
           <button
             onClick={send}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={loading || !workspace}
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full p-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
           >
-            {loading ? "..." : "Enviar"}
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5.951-1.429 5.951 1.429a1 1 0 001.169-1.409l-7-14z" />
+            </svg>
           </button>
         </div>
       </div>
