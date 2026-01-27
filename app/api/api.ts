@@ -1,5 +1,10 @@
 const API_URL = "http://localhost:8000/api";
 
+export async function listNamespaces() {
+  return fetch(`${API_URL}/namespaces`)
+    .then((r) => r.json());
+}
+
 export async function createWorkspace(name: string) {
   return fetch(`${API_URL}/namespaces`, {
     method: "POST",
