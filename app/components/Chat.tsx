@@ -3,7 +3,7 @@ import { askQuestion } from "app/api/api";
 import ReactMarkdown from "react-markdown";
 
 type Message = {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "error";
   content: string;
   insight?: string;
 };
@@ -35,6 +35,13 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
       ]);
     } catch (error) {
       console.error("Erro ao enviar pergunta:", error);
+      setMessages((prev) => [
+        ...prev,
+        { 
+          role: "error", 
+          content: "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique sua conexão e tente novamente." 
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -75,6 +82,19 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
                   <div className="flex gap-3 max-w-2xl">
                     <div className="bg-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-3 text-sm leading-relaxed shadow-sm">
                       {m.content}
+                    </div>
+                  </div>
+                </>
+              ) : m.role === "error" ? (
+                <>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 max-w-2xl">
+                    <div className="bg-red-50 border border-red-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                      <p className="text-sm text-red-700 font-medium">{m.content}</p>
                     </div>
                   </div>
                 </>
