@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { askQuestion, getChat, type ChatMessage as APIChatMessage } from "app/api/api";
 import ReactMarkdown from "react-markdown";
 
@@ -8,10 +8,17 @@ type Message = {
   timestamp?: string;
 };
 
-export default function Chat({ chatId, disableAppearance = false }: { chatId: string | null; disableAppearance?: boolean }) {
+type ChatProps = {
+  chatId: string | null;
+  disableAppearance?: boolean;
+  onMessageSent?: () => void;
+};
+
+export default function Chat({ chatId, disableAppearance = false, onMessageSent }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chatId) {
@@ -20,6 +27,14 @@ export default function Chat({ chatId, disableAppearance = false }: { chatId: st
       setMessages([]);
     }
   }, [chatId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
 
   async function loadChatHistory(id: string) {
     try {
@@ -62,6 +77,11 @@ export default function Chat({ chatId, disableAppearance = false }: { chatId: st
 
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
+      
+      // Notificar que uma mensagem foi enviada (para recarregar lista de chats)
+      if (onMessageSent) {
+        onMessageSent();
+      }
     } catch (error) {
       console.error("Erro ao enviar pergunta:", error);
       const errorMessage: Message = {
@@ -157,6 +177,9 @@ export default function Chat({ chatId, disableAppearance = false }: { chatId: st
               </div>
             </div>
           )}
+          
+          {/* Auto-scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

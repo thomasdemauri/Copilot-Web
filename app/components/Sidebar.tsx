@@ -5,7 +5,8 @@ type ChatItem = {
   chat_id: string;
   created_at: string;
   message_count: number;
-  last_message: string | null;
+  first_message?: string | null;
+  last_message?: string | null;
 };
 
 type Props = {
@@ -13,7 +14,7 @@ type Props = {
   active?: string;
   onSelect: (chatId: string) => void;
   onChatCreated: () => void;
-  onChatDeleted: () => void;
+  onChatDeleted: (deletedChatId: string) => void;
 };
 
 export default function Sidebar({
@@ -30,7 +31,7 @@ export default function Sidebar({
       try {
         await deleteChat(chatId);
         setOpenMenuChat(null);
-        onChatDeleted();
+        onChatDeleted(chatId);
       } catch (error) {
         console.error("Erro ao excluir chat:", error);
         alert("Erro ao excluir chat. Tente novamente.");
@@ -79,7 +80,9 @@ export default function Sidebar({
             <p className="text-xs text-gray-500 mt-2">Crie um para começar</p>
           </div>
         ) : (
-          chats.map((chat) => (
+          [...chats]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map((chat) => (
             <div key={chat.chat_id} className="group">
               {/* Chat Item */}
               <div className="flex items-center gap-0 rounded-lg transition-all hover:bg-gray-50 group relative">
@@ -99,7 +102,7 @@ export default function Sidebar({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-gray-500">{formatDate(chat.created_at)}</span>
                         {chat.message_count > 0 && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                             active === chat.chat_id 
                               ? "bg-blue-100 text-blue-700" 
                               : "bg-gray-100 text-gray-600"
@@ -108,12 +111,18 @@ export default function Sidebar({
                           </span>
                         )}
                       </div>
-                      {chat.last_message && (
-                        <p className="text-sm font-medium truncate mt-1">
-                          {chat.last_message}
+                      {(chat.first_message || chat.last_message) && (
+                        <p className="text-sm font-medium mt-1 overflow-hidden" style={{ 
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          lineHeight: '1.3rem',
+                          maxHeight: '2.6rem'
+                        }}>
+                          {chat.first_message || chat.last_message}
                         </p>
                       )}
-                      {!chat.last_message && (
+                      {!chat.first_message && !chat.last_message && (
                         <p className="text-sm text-gray-400 italic mt-1">
                           Chat vazio
                         </p>

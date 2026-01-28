@@ -4,7 +4,8 @@ export type ChatListItem = {
   chat_id: string;
   created_at: string;
   message_count: number;
-  last_message: string | null;
+  first_message?: string | null;
+  last_message?: string | null;
 };
 
 export type ChatMessage = {

@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useParams } from "react-router";
 import { useState, useEffect } from "react";
 import Sidebar from "app/components/Sidebar";
-import { listChats, createNewChat, type ChatListItem } from "app/api/api";
+import { listChats, createNewChat, getChat, type ChatListItem } from "app/api/api";
 
 export default function ChatLayout() {
   const [chats, setChats] = useState<ChatListItem[]>([]);
@@ -17,7 +17,21 @@ export default function ChatLayout() {
   async function loadChats() {
     try {
       const data = await listChats();
-      setChats(data.chats || []);
+      const chatsWithFirstMessage = await Promise.all(
+        (data.chats || []).map(async (chat) => {
+          try {
+            const chatDetail = await getChat(chat.chat_id);
+            const firstUserMessage = chatDetail.messages.find(msg => msg.role === "user");
+            return {
+              ...chat,
+              first_message: firstUserMessage?.content || null
+            };
+          } catch {
+            return { ...chat, first_message: null };
+          }
+        })
+      );
+      setChats(chatsWithFirstMessage);
     } catch (error) {
       console.error("Erro ao carregar chats:", error);
     } finally {
@@ -36,6 +50,14 @@ export default function ChatLayout() {
     }
   }
 
+  async function handleChatDeleted(deletedChatId: string) {
+    await loadChats();
+    // Se o chat deletado era o ativo, redirecionar para home
+    if (chatId === deletedChatId) {
+      navigate("/");
+    }
+  }
+
   return (
     <div className="flex h-screen">
       <Sidebar
@@ -43,11 +65,11 @@ export default function ChatLayout() {
         active={chatId}
         onSelect={(id) => navigate(`/chats/${id}`)}
         onChatCreated={handleCreateChat}
-        onChatDeleted={loadChats}
+        onChatDeleted={handleChatDeleted}
       />
 
       <div className="flex-1 relative">
-        <Outlet />
+        <Outlet context={{ onMessageSent: loadChats }} />
       </div>
     </div>
   );
