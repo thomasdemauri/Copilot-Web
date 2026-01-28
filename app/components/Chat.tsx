@@ -1,17 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { askQuestion } from "app/api/api";
 import ReactMarkdown from "react-markdown";
-
-type Message = {
-  role: "user" | "assistant" | "error";
-  content: string;
-  insight?: string;
-};
+import { getChatMessages, saveChatMessages, clearChatMessages } from "app/utils/chatStorage";
+import type { Message } from "app/utils/chatStorage";
 
 export default function Chat({ workspace, disableAppearance = false }: { workspace: string | null; disableAppearance?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (workspace) {
+      const savedMessages = getChatMessages(workspace);
+      setMessages(savedMessages);
+    } else {
+      setMessages([]);
+    }
+  }, [workspace]);
 
   async function send() {
     if (!input || loading || !workspace) return;
@@ -20,28 +25,44 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
     setInput("");
     setLoading(true);
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: question },
-    ]);
+    const userMessage: Message = {
+      role: "user",
+      content: question,
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
 
     try {
-      console.log("Enviando pergunta:", question);
-      const res = await askQuestion(workspace, question);
+      const historyForAPI = messages
+        .filter((m) => m.role !== "error")
+        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+      console.log("Enviando pergunta com histórico:");
+      console.log("  Pergunta:", question);
+      console.log("  Histórico:", historyForAPI);
+
+      const res = await askQuestion(workspace, question, historyForAPI);
       console.log("Resposta recebida:", res);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: res.answer, insight: res.insight },
-      ]);
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: res.answer,
+        insight: res.insight,
+      };
+
+      const updatedMessages = [...newMessages, assistantMessage];
+      setMessages(updatedMessages);
+      saveChatMessages(workspace, updatedMessages);
     } catch (error) {
       console.error("Erro ao enviar pergunta:", error);
-      setMessages((prev) => [
-        ...prev,
-        { 
-          role: "error", 
-          content: "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique sua conexão e tente novamente." 
-        },
-      ]);
+      const errorMessage: Message = {
+        role: "error",
+        content: "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique sua conexão e tente novamente.",
+      };
+      const updatedMessages = [...newMessages, errorMessage];
+      setMessages(updatedMessages);
+      saveChatMessages(workspace, updatedMessages);
     } finally {
       setLoading(false);
     }

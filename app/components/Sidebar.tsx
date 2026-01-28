@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import CreateWorkspaceModal from "app/components/CreateWorkspaceModal";
+import { clearChatMessages } from "app/utils/chatStorage";
 
 type Namespace = {
   name: string;
@@ -21,12 +23,21 @@ export default function Sidebar({
 }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [expandedNamespace, setExpandedNamespace] = useState<string | null>(null);
+  const [openMenuWorkspace, setOpenMenuWorkspace] = useState<string | null>(null);
 
   const toggleExpand = (name: string) => {
     setExpandedNamespace(expandedNamespace === name ? null : name);
   };
 
+  const handleClearHistory = (workspace: string) => {
+    if (confirm(`Tem certeza que deseja limpar o histórico de "${workspace}"?`)) {
+      clearChatMessages(workspace);
+      setOpenMenuWorkspace(null);
+    }
+  };
+
   return (
+    <>
     <aside className="w-72 bg-white border-r border-gray-200 flex flex-col shadow-sm h-screen">
       {/* Header */}
       <div className="p-5 border-b border-gray-200 bg-gradient-to-b from-gray-50 to-white">
@@ -52,7 +63,7 @@ export default function Sidebar({
           workspaces.map((ws) => (
             <div key={ws.name} className="group">
               {/* Workspace Header */}
-              <div className="flex items-center gap-0 rounded-lg transition-all hover:bg-gray-50 group">
+              <div className="flex items-center gap-0 rounded-lg transition-all hover:bg-gray-50 group relative">
                 <button
                   onClick={() => toggleExpand(ws.name)}
                   className="px-3 py-2.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
@@ -88,6 +99,32 @@ export default function Sidebar({
                     )}
                   </div>
                 </button>
+                
+                {/* Menu Button */}
+                <button
+                  onClick={() => setOpenMenuWorkspace(openMenuWorkspace === ws.name ? null : ws.name)}
+                  className="px-2 py-2.5 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors flex-shrink-0 rounded"
+                  title="Menu"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.5 1.5H9.5V3.5H10.5V1.5ZM10.5 8.5H9.5V10.5H10.5V8.5ZM10.5 15.5H9.5V17.5H10.5V15.5Z" />
+                  </svg>
+                </button>
+
+                {/* Context Menu */}
+                {openMenuWorkspace === ws.name && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-max">
+                    <button
+                      onClick={() => handleClearHistory(ws.name)}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Limpar histórico
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Expandable Tables List */}
@@ -126,15 +163,18 @@ export default function Sidebar({
         </button>
       </div>
 
-      {showCreate && (
+    </aside>
+    {showCreate &&
+      createPortal(
         <CreateWorkspaceModal
           onClose={() => setShowCreate(false)}
           onCreate={(name) => {
             onWorkspaceCreated(name);
             setShowCreate(false);
           }}
-        />
+        />,
+        document.body
       )}
-    </aside>
+    </>
   );
 }

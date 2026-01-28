@@ -6,11 +6,17 @@ export async function listNamespaces() {
 }
 
 export async function createWorkspace(name: string) {
-  return fetch(`${API_URL}/namespaces`, {
+  const response = await fetch(`${API_URL}/namespaces`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ namespace_name: name }),
-  }).then((r) => r.json());
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create workspace: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 export async function uploadFiles(
@@ -21,22 +27,36 @@ export async function uploadFiles(
   formData.append("namespace_name", workspace);
   files.forEach((f) => formData.append("files", f));
 
-  return fetch(`${API_URL}/upload`, {
+  const response = await fetch(`${API_URL}/upload`, {
     method: "POST",
     body: formData,
-  }).then((r) => r.json());
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload files: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 export async function askQuestion(
   workspace: string,
-  question: string
+  question: string,
+  messages: Array<{ role: "user" | "assistant"; content: string }> = []
 ) {
-  return fetch(`${API_URL}/ask`, {
+  const response = await fetch(`${API_URL}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       namespace_name: workspace,
       question,
+      messages,
     }),
-  }).then((r) => r.json());
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to ask question: ${response.statusText}`);
+  }
+
+  return response.json();
 }

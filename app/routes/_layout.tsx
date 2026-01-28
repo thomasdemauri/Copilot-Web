@@ -43,7 +43,7 @@ export default function WorkspaceLayout() {
       />
 
       <div className="flex-1 relative">
-        <Outlet />
+        <Outlet context={{ reloadWorkspaces: loadWorkspaces }} />
       </div>
     </div>
   );

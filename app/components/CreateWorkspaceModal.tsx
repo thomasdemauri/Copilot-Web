@@ -12,13 +12,22 @@ export default function CreateWorkspaceModal({
 }: Props) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleCreate() {
     if (!name) return;
 
     setLoading(true);
-    await createWorkspace(name);
-    onCreate(name);
+    setError("");
+    try {
+      await createWorkspace(name);
+      onCreate(name);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create workspace");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -32,6 +41,11 @@ export default function CreateWorkspaceModal({
 
         {/* Content */}
         <div className="p-6 space-y-5">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Workspace Name
@@ -43,6 +57,7 @@ export default function CreateWorkspaceModal({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && name && handleCreate()}
               autoFocus
+              disabled={loading}
             />
           </div>
         </div>

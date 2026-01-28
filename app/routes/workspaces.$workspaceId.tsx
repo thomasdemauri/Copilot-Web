@@ -1,14 +1,25 @@
-import { useParams } from "react-router";
+import { useParams, useOutletContext } from "react-router";
 import { useState } from "react";
 import Chat from "../components/Chat";
 import UploadModal from "../components/UploadModal";
 import { uploadFiles } from "../api/api";
 
+type LayoutContext = {
+  reloadWorkspaces: () => Promise<void>;
+};
+
 export default function WorkspaceRoute() {
   const { workspaceId } = useParams();
+  const { reloadWorkspaces } = useOutletContext<LayoutContext>();
   const [showUpload, setShowUpload] = useState(false);
 
   if (!workspaceId) return null;
+
+  async function handleUpload(files: File[]) {
+    await uploadFiles(workspaceId!, files);
+    // Refresh the workspaces list to show updated tables
+    await reloadWorkspaces();
+  }
 
   return (
     <>
@@ -24,7 +35,7 @@ export default function WorkspaceRoute() {
       {showUpload && (
         <UploadModal
           onClose={() => setShowUpload(false)}
-          onUpload={(files) => uploadFiles(workspaceId, files)}
+          onUpload={handleUpload}
         />
       )}
     </>
