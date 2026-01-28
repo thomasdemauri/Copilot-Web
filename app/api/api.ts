@@ -1,56 +1,79 @@
 const API_URL = "http://localhost:8000/api";
 
-export async function listNamespaces() {
-  return fetch(`${API_URL}/namespaces`)
-    .then((r) => r.json());
+export type ChatListItem = {
+  chat_id: string;
+  created_at: string;
+  message_count: number;
+  last_message: string | null;
+};
+
+export type ChatMessage = {
+  role: string;
+  content: string;
+  timestamp: string;
+};
+
+export type ChatDetail = {
+  chat_id: string;
+  created_at: string;
+  messages: ChatMessage[];
+};
+
+export async function listChats() {
+  const response = await fetch(`${API_URL}/chats`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to list chats: ${response.statusText}`);
+  }
+  
+  return response.json();
 }
 
-export async function createWorkspace(name: string) {
-  const response = await fetch(`${API_URL}/namespaces`, {
+export async function createNewChat() {
+  const response = await fetch(`${API_URL}/chat/new`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ namespace_name: name }),
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create workspace: ${response.statusText}`);
+    throw new Error(`Failed to create chat: ${response.statusText}`);
   }
 
   return response.json();
 }
 
-export async function uploadFiles(
-  workspace: string,
-  files: File[]
-) {
-  const formData = new FormData();
-  formData.append("namespace_name", workspace);
-  files.forEach((f) => formData.append("files", f));
+export async function getChat(chatId: string): Promise<ChatDetail> {
+  const response = await fetch(`${API_URL}/chat/${chatId}`);
 
-  const response = await fetch(`${API_URL}/upload`, {
-    method: "POST",
-    body: formData,
+  if (!response.ok) {
+    throw new Error(`Failed to get chat: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteChat(chatId: string) {
+  const response = await fetch(`${API_URL}/chat/${chatId}`, {
+    method: "DELETE",
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to upload files: ${response.statusText}`);
+    throw new Error(`Failed to delete chat: ${response.statusText}`);
   }
 
   return response.json();
 }
 
 export async function askQuestion(
-  workspace: string,
   question: string,
-  messages: Array<{ role: "user" | "assistant"; content: string }> = []
+  chatId: string | null = null
 ) {
   const response = await fetch(`${API_URL}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      namespace_name: workspace,
       question,
-      messages,
+      chat_id: chatId,
     }),
   });
 

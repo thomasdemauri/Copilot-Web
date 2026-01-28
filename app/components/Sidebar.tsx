@@ -1,152 +1,153 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
-import CreateWorkspaceModal from "app/components/CreateWorkspaceModal";
-import { clearChatMessages } from "app/utils/chatStorage";
+import { deleteChat } from "app/api/api";
 
-type Namespace = {
-  name: string;
-  tables: string[];
+type ChatItem = {
+  chat_id: string;
+  created_at: string;
+  message_count: number;
+  last_message: string | null;
 };
 
 type Props = {
-  workspaces: Namespace[];
+  chats: ChatItem[];
   active?: string;
-  onSelect: (workspace: string) => void;
-  onWorkspaceCreated: (workspace: string) => void;
+  onSelect: (chatId: string) => void;
+  onChatCreated: () => void;
+  onChatDeleted: () => void;
 };
 
 export default function Sidebar({
-  workspaces = [],
+  chats = [],
   active,
   onSelect,
-  onWorkspaceCreated,
+  onChatCreated,
+  onChatDeleted,
 }: Props) {
-  const [showCreate, setShowCreate] = useState(false);
-  const [expandedNamespace, setExpandedNamespace] = useState<string | null>(null);
-  const [openMenuWorkspace, setOpenMenuWorkspace] = useState<string | null>(null);
+  const [openMenuChat, setOpenMenuChat] = useState<string | null>(null);
 
-  const toggleExpand = (name: string) => {
-    setExpandedNamespace(expandedNamespace === name ? null : name);
-  };
-
-  const handleClearHistory = (workspace: string) => {
-    if (confirm(`Tem certeza que deseja limpar o histórico de "${workspace}"?`)) {
-      clearChatMessages(workspace);
-      setOpenMenuWorkspace(null);
+  const handleDeleteChat = async (chatId: string) => {
+    if (confirm(`Tem certeza que deseja excluir este chat?`)) {
+      try {
+        await deleteChat(chatId);
+        setOpenMenuChat(null);
+        onChatDeleted();
+      } catch (error) {
+        console.error("Erro ao excluir chat:", error);
+        alert("Erro ao excluir chat. Tente novamente.");
+      }
     }
   };
 
+  const formatDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Agora";
+    if (diffMins < 60) return `${diffMins}m atrás`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d atrás`;
+    
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  };
+
   return (
-    <>
     <aside className="w-72 bg-white border-r border-gray-200 flex flex-col shadow-sm h-screen">
       {/* Header */}
       <div className="p-5 border-b border-gray-200 bg-gradient-to-b from-gray-50 to-white">
         <h1 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-          Workspaces
+          Chats
         </h1>
-        <p className="text-xs text-gray-500 mt-1">Organize your databases</p>
+        <p className="text-xs text-gray-500 mt-1">Análise de dados Olist</p>
       </div>
 
-      {/* Workspaces List */}
+      {/* Chats List */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {!workspaces || workspaces.length === 0 ? (
+        {!chats || chats.length === 0 ? (
           <div className="px-4 py-12 text-center">
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 mb-3">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-900">No workspaces yet</p>
-            <p className="text-xs text-gray-500 mt-2">Create one to get started</p>
+            <p className="text-sm font-medium text-gray-900">Nenhum chat ainda</p>
+            <p className="text-xs text-gray-500 mt-2">Crie um para começar</p>
           </div>
         ) : (
-          workspaces.map((ws) => (
-            <div key={ws.name} className="group">
-              {/* Workspace Header */}
+          chats.map((chat) => (
+            <div key={chat.chat_id} className="group">
+              {/* Chat Item */}
               <div className="flex items-center gap-0 rounded-lg transition-all hover:bg-gray-50 group relative">
                 <button
-                  onClick={() => toggleExpand(ws.name)}
-                  className="px-3 py-2.5 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
-                  title={expandedNamespace === ws.name ? "Collapse" : "Expand"}
-                >
-                  {expandedNamespace === ws.name ? (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                  )}
-                </button>
-                <button
-                  onClick={() => onSelect(ws.name)}
-                  className={`flex-1 text-left px-2 py-2.5 rounded-md transition-all font-medium text-sm ${
-                    active === ws.name
+                  onClick={() => onSelect(chat.chat_id)}
+                  className={`flex-1 text-left px-3 py-2.5 rounded-md transition-all ${
+                    active === chat.chat_id
                       ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600"
                       : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      active === ws.name ? "bg-blue-600" : "bg-gray-300"
+                  <div className="flex items-start gap-2">
+                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                      active === chat.chat_id ? "bg-blue-600" : "bg-gray-300"
                     }`} />
-                    <span className="flex-1 truncate">{ws.name}</span>
-                    {ws.tables && ws.tables.length > 0 && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        active === ws.name 
-                          ? "bg-blue-100 text-blue-700" 
-                          : "bg-gray-100 text-gray-600"
-                      }`}>
-                        {ws.tables.length}
-                      </span>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-gray-500">{formatDate(chat.created_at)}</span>
+                        {chat.message_count > 0 && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            active === chat.chat_id 
+                              ? "bg-blue-100 text-blue-700" 
+                              : "bg-gray-100 text-gray-600"
+                          }`}>
+                            {chat.message_count}
+                          </span>
+                        )}
+                      </div>
+                      {chat.last_message && (
+                        <p className="text-sm font-medium truncate mt-1">
+                          {chat.last_message}
+                        </p>
+                      )}
+                      {!chat.last_message && (
+                        <p className="text-sm text-gray-400 italic mt-1">
+                          Chat vazio
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </button>
                 
                 {/* Menu Button */}
                 <button
-                  onClick={() => setOpenMenuWorkspace(openMenuWorkspace === ws.name ? null : ws.name)}
+                  onClick={() => setOpenMenuChat(openMenuChat === chat.chat_id ? null : chat.chat_id)}
                   className="px-2 py-2.5 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors flex-shrink-0 rounded"
                   title="Menu"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.5 1.5H9.5V3.5H10.5V1.5ZM10.5 8.5H9.5V10.5H10.5V8.5ZM10.5 15.5H9.5V17.5H10.5V15.5Z" />
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                   </svg>
                 </button>
 
                 {/* Context Menu */}
-                {openMenuWorkspace === ws.name && (
+                {openMenuChat === chat.chat_id && (
                   <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-max">
                     <button
-                      onClick={() => handleClearHistory(ws.name)}
+                      onClick={() => handleDeleteChat(chat.chat_id)}
                       className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 first:rounded-t-lg last:rounded-b-lg"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      Limpar histórico
+                      Excluir chat
                     </button>
                   </div>
                 )}
               </div>
-
-              {/* Expandable Tables List */}
-              {expandedNamespace === ws.name && (
-                <div className="ml-6 mt-1 border-l border-gray-200 pl-3 py-2 space-y-1 animate-fadeIn">
-                  {!ws.tables || ws.tables.length === 0 ? (
-                    <p className="px-3 py-2 text-xs text-gray-400 italic">
-                      No tables
-                    </p>
-                  ) : (
-                    ws.tables.map((table) => (
-                      <div
-                        key={table}
-                        className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 rounded hover:bg-gray-100 transition-colors cursor-default flex items-center gap-2 group/table"
-                      >
-                        <svg className="w-3 h-3 text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M6 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H6zm0 2h10v10H6V5z" /></svg>
-                        <span className="truncate font-medium">{table}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
             </div>
           ))
         )}
@@ -155,26 +156,13 @@ export default function Sidebar({
       {/* Create Button */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={onChatCreated}
           className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
-          New Workspace
+          Novo Chat
         </button>
       </div>
-
     </aside>
-    {showCreate &&
-      createPortal(
-        <CreateWorkspaceModal
-          onClose={() => setShowCreate(false)}
-          onCreate={(name) => {
-            onWorkspaceCreated(name);
-            setShowCreate(false);
-          }}
-        />,
-        document.body
-      )}
-    </>
   );
 }

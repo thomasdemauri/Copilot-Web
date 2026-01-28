@@ -1,25 +1,43 @@
 import { useState, useEffect } from "react";
-import { askQuestion } from "app/api/api";
+import { askQuestion, getChat, type ChatMessage as APIChatMessage } from "app/api/api";
 import ReactMarkdown from "react-markdown";
-import { getChatMessages, saveChatMessages, clearChatMessages } from "app/utils/chatStorage";
-import type { Message } from "app/utils/chatStorage";
 
-export default function Chat({ workspace, disableAppearance = false }: { workspace: string | null; disableAppearance?: boolean }) {
+type Message = {
+  role: "user" | "assistant" | "error";
+  content: string;
+  timestamp?: string;
+};
+
+export default function Chat({ chatId, disableAppearance = false }: { chatId: string | null; disableAppearance?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (workspace) {
-      const savedMessages = getChatMessages(workspace);
-      setMessages(savedMessages);
+    if (chatId) {
+      loadChatHistory(chatId);
     } else {
       setMessages([]);
     }
-  }, [workspace]);
+  }, [chatId]);
+
+  async function loadChatHistory(id: string) {
+    try {
+      const chat = await getChat(id);
+      const formattedMessages: Message[] = chat.messages.map((msg: APIChatMessage) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+        timestamp: msg.timestamp,
+      }));
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error("Erro ao carregar histórico:", error);
+      setMessages([]);
+    }
+  }
 
   async function send() {
-    if (!input || loading || !workspace) return;
+    if (!input || loading) return;
 
     const question = input;
     setInput("");
@@ -34,26 +52,16 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
     setMessages(newMessages);
 
     try {
-      const historyForAPI = messages
-        .filter((m) => m.role !== "error")
-        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
-
-      console.log("Enviando pergunta com histórico:");
-      console.log("  Pergunta:", question);
-      console.log("  Histórico:", historyForAPI);
-
-      const res = await askQuestion(workspace, question, historyForAPI);
-      console.log("Resposta recebida:", res);
-
+      const res = await askQuestion(question, chatId);
+      
       const assistantMessage: Message = {
         role: "assistant",
         content: res.answer,
-        insight: res.insight,
+        timestamp: res.timestamp,
       };
 
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
-      saveChatMessages(workspace, updatedMessages);
     } catch (error) {
       console.error("Erro ao enviar pergunta:", error);
       const errorMessage: Message = {
@@ -62,7 +70,6 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
       };
       const updatedMessages = [...newMessages, errorMessage];
       setMessages(updatedMessages);
-      saveChatMessages(workspace, updatedMessages);
     } finally {
       setLoading(false);
     }
@@ -74,14 +81,14 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
       {!disableAppearance && (
         <div className="border-b border-gray-200 bg-white px-6 py-5 shadow-sm">
           <h1 className="text-center text-xl font-semibold text-gray-900">Chat BI</h1>
-          <p className="text-center text-sm text-gray-500 mt-1">Análise inteligente de dados</p>
+          <p className="text-center text-sm text-gray-500 mt-1">Análise inteligente de dados Olist</p>
         </div>
       )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="max-w-3xl mx-auto space-y-4">
-          {messages.length === 0 && workspace && (
+          {messages.length === 0 && (
             <div className="flex items-center justify-center h-full text-center">
               <div>
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-4">
@@ -90,7 +97,7 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
                   </svg>
                 </div>
                 <h3 className="text-gray-900 font-medium mb-2">Faça uma pergunta</h3>
-                <p className="text-gray-500 text-sm">Comece digitando uma pergunta sobre seus dados para obter insights</p>
+                <p className="text-gray-500 text-sm">Comece digitando uma pergunta sobre os dados Olist para obter insights</p>
               </div>
             </div>
           )}
@@ -126,24 +133,8 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
                   </div>
                   <div className="flex-1 max-w-2xl">
                     <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
-                      <div className="space-y-3">
-                        <div>
-                          <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Resposta</h3>
-                          <div className="text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-1 prose-li:my-0">
-                            <ReactMarkdown>{m.content}</ReactMarkdown>
-                          </div>
-                        </div>
-                        {m.insight && (
-                          <div className="border-t border-gray-200 pt-3">
-                            <h3 className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-purple-600" />
-                              Insight
-                            </h3>
-                            <div className="text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-1 prose-li:my-0">
-                              <ReactMarkdown>{m.insight}</ReactMarkdown>
-                            </div>
-                          </div>
-                        )}
+                      <div className="text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-1 prose-li:my-0">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
                       </div>
                     </div>
                   </div>
@@ -176,17 +167,17 @@ export default function Chat({ workspace, disableAppearance = false }: { workspa
             className="flex-1 bg-gray-50 border border-gray-300 rounded-full px-4 py-3 text-sm text-gray-900 placeholder-gray-500 transition-all focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={workspace ? "Faça uma pergunta sobre seus dados..." : "Selecione um workspace para começar..."}
-            onKeyDown={(e) => e.key === "Enter" && !loading && workspace && send()}
-            disabled={!workspace || loading}
+            placeholder="Faça uma pergunta sobre os dados Olist..."
+            onKeyDown={(e) => e.key === "Enter" && !loading && send()}
+            disabled={loading}
           />
           <button
             onClick={send}
-            disabled={loading || !workspace}
+            disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-full p-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5.951-1.429 5.951 1.429a1 1 0 001.169-1.409l-7-14z" />
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429 5.951 1.429a1 1 0 001.169-1.409l-7-14z" />
             </svg>
           </button>
         </div>

@@ -1,49 +1,53 @@
 import { Outlet, useNavigate, useParams } from "react-router";
 import { useState, useEffect } from "react";
 import Sidebar from "app/components/Sidebar";
-import { listNamespaces } from "app/api/api";
+import { listChats, createNewChat, type ChatListItem } from "app/api/api";
 
-type Namespace = {
-  name: string;
-  tables: string[];
-};
-
-export default function WorkspaceLayout() {
-  const [workspaces, setWorkspaces] = useState<Namespace[]>([]);
+export default function ChatLayout() {
+  const [chats, setChats] = useState<ChatListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { workspaceId } = useParams();
+  const { chatId } = useParams();
   const navigate = useNavigate();
 
-  // Carregar namespaces ao montar o componente
+  // Carregar chats ao montar o componente
   useEffect(() => {
-    loadWorkspaces();
+    loadChats();
   }, []);
 
-  async function loadWorkspaces() {
+  async function loadChats() {
     try {
-      const data = await listNamespaces();
-      setWorkspaces(data.namespaces || []);
+      const data = await listChats();
+      setChats(data.chats || []);
     } catch (error) {
-      console.error("Erro ao carregar workspaces:", error);
+      console.error("Erro ao carregar chats:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCreateChat() {
+    try {
+      const newChat = await createNewChat();
+      await loadChats();
+      navigate(`/chats/${newChat.chat_id}`);
+    } catch (error) {
+      console.error("Erro ao criar chat:", error);
+      alert("Erro ao criar chat. Tente novamente.");
     }
   }
 
   return (
     <div className="flex h-screen">
       <Sidebar
-        workspaces={workspaces}
-        active={workspaceId}
-        onSelect={(ws) => navigate(`/workspaces/${ws}`)}
-        onWorkspaceCreated={(ws) => {
-          setWorkspaces((prev) => [...prev, { name: ws, tables: [] }]);
-          navigate(`/workspaces/${ws}`);
-        }}
+        chats={chats}
+        active={chatId}
+        onSelect={(id) => navigate(`/chats/${id}`)}
+        onChatCreated={handleCreateChat}
+        onChatDeleted={loadChats}
       />
 
       <div className="flex-1 relative">
-        <Outlet context={{ reloadWorkspaces: loadWorkspaces }} />
+        <Outlet />
       </div>
     </div>
   );

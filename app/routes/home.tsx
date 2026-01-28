@@ -3,11 +3,11 @@ import Chat from "../components/Chat";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Chat BI - Olist" },
+    { name: "description", content: "Análise inteligente de dados Olist" },
   ];
 }
 
 export default function Home() {
-  return <Chat workspace={null} disableAppearance={true} />;
+  return <Chat chatId={null} disableAppearance={true} />;
 }
