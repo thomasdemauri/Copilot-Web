@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { deleteChat } from "app/api/api";
+import DeleteChatModal from "./DeleteChatModal";
 
 type ChatItem = {
   chat_id: string;
@@ -25,17 +26,23 @@ export default function Sidebar({
   onChatDeleted,
 }: Props) {
   const [openMenuChat, setOpenMenuChat] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
+  const [deletingChat, setDeletingChat] = useState(false);
 
-  const handleDeleteChat = async (chatId: string) => {
-    if (confirm(`Tem certeza que deseja excluir este chat?`)) {
-      try {
-        await deleteChat(chatId);
-        setOpenMenuChat(null);
-        onChatDeleted(chatId);
-      } catch (error) {
-        console.error("Erro ao excluir chat:", error);
-        alert("Erro ao excluir chat. Tente novamente.");
-      }
+  const handleDeleteChat = async () => {
+    if (!deleteModalOpen) return;
+
+    setDeletingChat(true);
+    try {
+      await deleteChat(deleteModalOpen);
+      setOpenMenuChat(null);
+      setDeleteModalOpen(null);
+      onChatDeleted(deleteModalOpen);
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      alert("Error deleting chat. Try again.");
+    } finally {
+      setDeletingChat(false);
     }
   };
 
@@ -45,14 +52,14 @@ export default function Sidebar({
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < 1) return "Agora";
-    if (diffMins < 60) return `${diffMins}m atrás`;
+    if (diffMins < 1) return "Now";
+    if (diffMins < 60) return `${diffMins}m ago`;
     
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h atrás`;
+    if (diffHours < 24) return `${diffHours}h ago`;
     
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d atrás`;
+    if (diffDays < 7) return `${diffDays}d ago`;
     
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
@@ -64,7 +71,7 @@ export default function Sidebar({
         <h1 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
           Chats
         </h1>
-        <p className="text-xs text-gray-500 mt-1">Análise de dados Olist</p>
+        <p className="text-xs text-gray-500 mt-1">Olist Data Analysis</p>
       </div>
 
       {/* Chats List */}
@@ -76,8 +83,8 @@ export default function Sidebar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-900">Nenhum chat ainda</p>
-            <p className="text-xs text-gray-500 mt-2">Crie um para começar</p>
+            <p className="text-sm font-medium text-gray-900">No chats yet</p>
+            <p className="text-xs text-gray-500 mt-2">Create one to get started</p>
           </div>
         ) : (
           [...chats]
@@ -124,7 +131,7 @@ export default function Sidebar({
                       )}
                       {!chat.first_message && !chat.last_message && (
                         <p className="text-sm text-gray-400 italic mt-1">
-                          Chat vazio
+                          Empty chat
                         </p>
                       )}
                     </div>
@@ -146,13 +153,13 @@ export default function Sidebar({
                 {openMenuChat === chat.chat_id && (
                   <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-max">
                     <button
-                      onClick={() => handleDeleteChat(chat.chat_id)}
+                      onClick={() => setDeleteModalOpen(chat.chat_id)}
                       className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 first:rounded-t-lg last:rounded-b-lg"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      Excluir chat
+                      Delete chat
                     </button>
                   </div>
                 )}
@@ -162,6 +169,15 @@ export default function Sidebar({
         )}
       </nav>
 
+      {/* Delete Chat Modal */}
+      {deleteModalOpen && (
+        <DeleteChatModal
+          onConfirm={handleDeleteChat}
+          onCancel={() => setDeleteModalOpen(null)}
+          isLoading={deletingChat}
+        />
+      )}
+
       {/* Create Button */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <button
@@ -169,7 +185,7 @@ export default function Sidebar({
           className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
-          Novo Chat
+          New Chat
         </button>
       </div>
     </aside>

@@ -9,7 +9,7 @@ export default function ChatLayout() {
   const { chatId } = useParams();
   const navigate = useNavigate();
 
-  // Carregar chats ao montar o componente
+  // Load chats on component mount
   useEffect(() => {
     loadChats();
   }, []);
@@ -33,7 +33,7 @@ export default function ChatLayout() {
       );
       setChats(chatsWithFirstMessage);
     } catch (error) {
-      console.error("Erro ao carregar chats:", error);
+      console.error("Error loading chats:", error);
     } finally {
       setLoading(false);
     }
@@ -45,14 +45,14 @@ export default function ChatLayout() {
       await loadChats();
       navigate(`/chats/${newChat.chat_id}`);
     } catch (error) {
-      console.error("Erro ao criar chat:", error);
-      alert("Erro ao criar chat. Tente novamente.");
+      console.error("Error creating chat:", error);
+      alert("Error creating chat. Try again.");
     }
   }
 
   async function handleChatDeleted(deletedChatId: string) {
     await loadChats();
-    // Se o chat deletado era o ativo, redirecionar para home
+    // If the deleted chat was active, redirect to home
     if (chatId === deletedChatId) {
       navigate("/");
     }

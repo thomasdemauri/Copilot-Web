@@ -1,13 +1,20 @@
 import type { Route } from "./+types/home";
+import { useOutletContext } from "react-router";
 import Chat from "../components/Chat";
+
+type LayoutContext = {
+  onMessageSent: () => void;
+};
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Chat BI - Olist" },
-    { name: "description", content: "Análise inteligente de dados Olist" },
+    { name: "description", content: "Intelligent data analysis for Olist" },
   ];
 }
 
 export default function Home() {
-  return <Chat chatId={null} disableAppearance={true} />;
+  const { onMessageSent } = useOutletContext<LayoutContext>();
+  
+  return <Chat chatId={null} disableAppearance={true} onMessageSent={onMessageSent} />;
 }

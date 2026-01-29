@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { askQuestion, getChat, type ChatMessage as APIChatMessage } from "app/api/api";
+import { askQuestion, getChat, createNewChat, type ChatMessage as APIChatMessage } from "app/api/api";
+import { useNavigate } from "react-router";
 import ReactMarkdown from "react-markdown";
 
 type Message = {
@@ -18,9 +19,12 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeChatId, setActiveChatId] = useState<string | null>(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    setActiveChatId(chatId);
     if (chatId) {
       loadChatHistory(chatId);
     } else {
@@ -46,7 +50,7 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
       }));
       setMessages(formattedMessages);
     } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+      console.error("Error loading history:", error);
       setMessages([]);
     }
   }
@@ -67,7 +71,21 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
     setMessages(newMessages);
 
     try {
-      const res = await askQuestion(question, chatId);
+      // If no active chat (on home page), create a new one
+      // Always use the passed chatId if available, otherwise use activeChatId
+      let currentChatId = chatId || activeChatId;
+      if (!currentChatId) {
+        const newChat = await createNewChat();
+        currentChatId = newChat.chat_id;
+        setActiveChatId(currentChatId);
+        
+        // Navigate to the new chat
+        if (disableAppearance) {
+          navigate(`/chats/${currentChatId}`);
+        }
+      }
+
+      const res = await askQuestion(question, currentChatId);
       
       const assistantMessage: Message = {
         role: "assistant",
@@ -78,15 +96,15 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      // Notificar que uma mensagem foi enviada (para recarregar lista de chats)
+      // Notify that a message was sent (to reload chat list)
       if (onMessageSent) {
         onMessageSent();
       }
     } catch (error) {
-      console.error("Erro ao enviar pergunta:", error);
+      console.error("Error sending question:", error);
       const errorMessage: Message = {
         role: "error",
-        content: "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique sua conexão e tente novamente.",
+        content: "Sorry, an error occurred while processing your question. Please check your connection and try again.",
       };
       const updatedMessages = [...newMessages, errorMessage];
       setMessages(updatedMessages);
@@ -101,7 +119,7 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
       {!disableAppearance && (
         <div className="border-b border-gray-200 bg-white px-6 py-5 shadow-sm">
           <h1 className="text-center text-xl font-semibold text-gray-900">Chat BI</h1>
-          <p className="text-center text-sm text-gray-500 mt-1">Análise inteligente de dados Olist</p>
+          <p className="text-center text-sm text-gray-500 mt-1">Intelligent data analysis for Olist</p>
         </div>
       )}
 
@@ -116,8 +134,8 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-gray-900 font-medium mb-2">Faça uma pergunta</h3>
-                <p className="text-gray-500 text-sm">Comece digitando uma pergunta sobre os dados Olist para obter insights</p>
+                <h3 className="text-gray-900 font-medium mb-2">Ask a Question</h3>
+                <p className="text-gray-500 text-sm">Start typing a question about the Olist data to get insights</p>
               </div>
             </div>
           )}
@@ -173,7 +191,7 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
                 </div>
               </div>
               <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
-                <p className="text-sm text-gray-500">IA está pensando...</p>
+                <p className="text-sm text-gray-500">AI is thinking...</p>
               </div>
             </div>
           )}
@@ -190,7 +208,7 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
             className="flex-1 bg-gray-50 border border-gray-300 rounded-full px-4 py-3 text-sm text-gray-900 placeholder-gray-500 transition-all focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Faça uma pergunta sobre os dados Olist..."
+            placeholder="Ask a question about the Olist data..."
             onKeyDown={(e) => e.key === "Enter" && !loading && send()}
             disabled={loading}
           />
