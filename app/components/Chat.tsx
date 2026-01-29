@@ -20,15 +20,20 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeChatId, setActiveChatId] = useState<string | null>(chatId);
+  const [isNewlyCreated, setIsNewlyCreated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setActiveChatId(chatId);
-    if (chatId) {
+    if (chatId && !isNewlyCreated) {
       loadChatHistory(chatId);
-    } else {
+    } else if (!chatId) {
       setMessages([]);
+    }
+    // Reset the flag after the effect runs
+    if (isNewlyCreated) {
+      setIsNewlyCreated(false);
     }
   }, [chatId]);
 
@@ -71,18 +76,19 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
     setMessages(newMessages);
 
     try {
-      // If no active chat (on home page), create a new one
-      // Always use the passed chatId if available, otherwise use activeChatId
+      // Determine the current chat ID
+      // Priority: chatId prop > activeChatId state
       let currentChatId = chatId || activeChatId;
+      
+      // If no chat exists, create a new one
       if (!currentChatId) {
         const newChat = await createNewChat();
         currentChatId = newChat.chat_id;
         setActiveChatId(currentChatId);
+        setIsNewlyCreated(true);
         
-        // Navigate to the new chat
-        if (disableAppearance) {
-          navigate(`/app/chats/${currentChatId}`);
-        }
+        // Navigate to the new chat from home page
+        navigate(`/app/chats/${currentChatId}`);
       }
 
       const res = await askQuestion(question, currentChatId);
@@ -118,8 +124,8 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
       {/* Header */}
       {!disableAppearance && (
         <div className="border-b border-gray-200 bg-white px-6 py-5 shadow-sm">
-          <h1 className="text-center text-xl font-semibold text-gray-900">Olist Copilot</h1>
-          <p className="text-center text-sm text-gray-500 mt-1">Intelligent data analysis for Olist</p>
+          <h1 className="text-center text-xl font-semibold text-gray-900">BIA</h1>
+          <p className="text-center text-sm text-gray-500 mt-1">Business Intelligence Assistant</p>
         </div>
       )}
 
