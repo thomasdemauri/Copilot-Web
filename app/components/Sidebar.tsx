@@ -16,6 +16,7 @@ type Props = {
   onSelect: (chatId: string) => void;
   onChatCreated: () => void;
   onChatDeleted: (deletedChatId: string) => void;
+  onLogout?: () => void;
 };
 
 export default function Sidebar({
@@ -24,6 +25,7 @@ export default function Sidebar({
   onSelect,
   onChatCreated,
   onChatDeleted,
+  onLogout,
 }: Props) {
   const [openMenuChat, setOpenMenuChat] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
@@ -178,14 +180,24 @@ export default function Sidebar({
         />
       )}
 
-      {/* Create Button */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      {/* Create Button and Logout */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
         <button
           onClick={onChatCreated}
           className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
           New Chat
+        </button>
+        
+        <button
+          onClick={onLogout}
+          className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-lg text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+          </svg>
+          Logout
         </button>
       </div>
     </aside>

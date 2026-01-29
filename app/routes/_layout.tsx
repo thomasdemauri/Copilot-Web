@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useParams } from "react-router";
 import { useState, useEffect } from "react";
 import Sidebar from "app/components/Sidebar";
 import { listChats, createNewChat, getChat, type ChatListItem } from "app/api/api";
+import { isAuthenticated, logoutUser } from "app/utils/auth";
 
 export default function ChatLayout() {
   const [chats, setChats] = useState<ChatListItem[]>([]);
@@ -9,10 +10,14 @@ export default function ChatLayout() {
   const { chatId } = useParams();
   const navigate = useNavigate();
 
-  // Load chats on component mount
+  // Check authentication on mount
   useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
     loadChats();
-  }, []);
+  }, [navigate]);
 
   async function loadChats() {
     try {
@@ -43,7 +48,7 @@ export default function ChatLayout() {
     try {
       const newChat = await createNewChat();
       await loadChats();
-      navigate(`/chats/${newChat.chat_id}`);
+      navigate(`/app/chats/${newChat.chat_id}`);
     } catch (error) {
       console.error("Error creating chat:", error);
       alert("Error creating chat. Try again.");
@@ -54,7 +59,7 @@ export default function ChatLayout() {
     await loadChats();
     // If the deleted chat was active, redirect to home
     if (chatId === deletedChatId) {
-      navigate("/");
+      navigate("/app");
     }
   }
 
@@ -63,9 +68,13 @@ export default function ChatLayout() {
       <Sidebar
         chats={chats}
         active={chatId}
-        onSelect={(id) => navigate(`/chats/${id}`)}
+        onSelect={(id) => navigate(`/app/chats/${id}`)}
         onChatCreated={handleCreateChat}
         onChatDeleted={handleChatDeleted}
+        onLogout={() => {
+          logoutUser();
+          navigate("/login");
+        }}
       />
 
       <div className="flex-1 relative">

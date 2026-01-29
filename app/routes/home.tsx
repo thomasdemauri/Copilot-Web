@@ -8,7 +8,7 @@ type LayoutContext = {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Chat BI - Olist" },
+    { title: "Olist Copilot" },
     { name: "description", content: "Intelligent data analysis for Olist" },
   ];
 }
