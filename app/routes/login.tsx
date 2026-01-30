@@ -16,7 +16,7 @@ export default function Login() {
     }
   }, [navigate]);
 
-  async function handleLogin() {
+  function handleLogin() {
     if (!email || !password) {
       setError("Email and password are required");
       return;

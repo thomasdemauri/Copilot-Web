@@ -11,7 +11,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  async function handleRegister() {
+  function handleRegister() {
     if (!name || !email || !password || !confirmPassword) {
       setError("All fields are required");
       return;

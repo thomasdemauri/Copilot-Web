@@ -1,13 +1,15 @@
 import { useNavigate } from "react-router";
+import { useEffect } from "react";
 import { isAuthenticated } from "../utils/auth";
 
 export default function Landing() {
   const navigate = useNavigate();
 
-  if (isAuthenticated()) {
-    navigate("/");
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate("/app");
+    }
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">

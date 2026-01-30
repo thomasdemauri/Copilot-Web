@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { askQuestion, getChat, createNewChat, type ChatMessage as APIChatMessage } from "app/api/api";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import ReactMarkdown from "react-markdown";
 
 type Message = {
@@ -23,19 +23,22 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
   const [isNewlyCreated, setIsNewlyCreated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { chatId: routeChatId } = useParams();
+
+  const resolvedChatId = chatId ?? routeChatId ?? null;
 
   useEffect(() => {
-    setActiveChatId(chatId);
-    if (chatId && !isNewlyCreated) {
-      loadChatHistory(chatId);
-    } else if (!chatId) {
+    setActiveChatId(resolvedChatId);
+    if (resolvedChatId && !isNewlyCreated) {
+      loadChatHistory(resolvedChatId);
+    } else if (!resolvedChatId) {
       setMessages([]);
     }
     // Reset the flag after the effect runs
     if (isNewlyCreated) {
       setIsNewlyCreated(false);
     }
-  }, [chatId]);
+  }, [resolvedChatId, isNewlyCreated]);
 
   useEffect(() => {
     scrollToBottom();
@@ -78,7 +81,7 @@ export default function Chat({ chatId, disableAppearance = false, onMessageSent 
     try {
       // Determine the current chat ID
       // Priority: chatId prop > activeChatId state
-      let currentChatId = chatId || activeChatId;
+      let currentChatId = chatId || routeChatId || activeChatId;
       
       // If no chat exists, create a new one
       if (!currentChatId) {
